@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Analizador de Compensaciones — Fundación Cunaguaro</title>
+<link rel="icon" href="assets/Cunaguaro.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="leaflet.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <img src="assets/Cunaguaro.png" alt="Fundación Cunaguaro" class="logo">
+  <div class="titles">
+    <h1>Analizador de Compensaciones</h1>
+    <p>Intervenciones, biomas, ecosistemas y coberturas con factores BUB–FC. Los archivos se procesan en este navegador; nada se envía a un servidor.</p>
+  </div>
+  <span class="version" id="version"></span>
+</header>
+
+<div class="shell">
+<aside class="panel" aria-label="Configuración">
+  <section class="step" id="step-interv">
+    <h2><span class="n">1</span>Intervenciones</h2>
+    <div class="row">
+      <label class="btn">Elegir carpeta<input type="file" id="interv-dir" webkitdirectory multiple hidden></label>
+      <label class="btn">Elegir archivos o .zip<input type="file" id="interv-files" multiple accept=".shp,.shx,.dbf,.prj,.cpg,.zip,.gpkg,.geojson,.json" hidden></label>
+    </div>
+    <p class="hint">Puede subir un solo .zip con todos los Shapefile (aunque estén en subcarpetas), una carpeta completa, o archivos sueltos (.shp, .dbf, .prj y .cpg juntos). Todas las capas quedan marcadas y se disuelven en una sola huella; desmarque las que no quiera incluir.</p>
+    <div id="interv-tree" class="tree empty">Sin capas cargadas.</div>
+    <div class="row small">
+      <button type="button" id="interv-all">Marcar todas</button>
+      <button type="button" id="interv-none">Desmarcar todas</button>
+      <span id="interv-count" class="muted"></span>
+    </div>
+  </section>
+
+  <section class="step" id="step-cov">
+    <h2><span class="n">2</span>Coberturas</h2>
+    <div class="row">
+      <label class="btn">Elegir archivo<input type="file" id="cov-files" multiple accept=".shp,.shx,.dbf,.prj,.cpg,.zip,.gpkg,.geojson,.json" hidden></label>
+      <label class="btn">Elegir carpeta<input type="file" id="cov-dir" webkitdirectory multiple hidden></label>
+    </div>
+    <p class="included" id="cov-included" hidden></p>
+    <label class="field">Capa<select id="cov-layer" disabled></select></label>
+    <label class="field">Campo con el nombre de la cobertura<select id="cov-field" disabled></select></label>
+    <div class="preview" id="cov-preview"></div>
+  </section>
+
+  <section class="step" id="step-eco">
+    <h2><span class="n">3</span>Ecosistemas</h2>
+    <div class="row">
+      <label class="btn">Elegir archivo<input type="file" id="eco-files" multiple accept=".shp,.shx,.dbf,.prj,.cpg,.zip,.gpkg,.geojson,.json" hidden></label>
+      <label class="btn">Elegir carpeta<input type="file" id="eco-dir" webkitdirectory multiple hidden></label>
+    </div>
+    <p class="included" id="eco-included" hidden></p>
+    <label class="field">Capa<select id="eco-layer" disabled></select></label>
+    <label class="field">Campo llave para el FC (cruce con BUB)<select id="eco-key" disabled></select></label>
+    <div class="preview" id="eco-key-preview"></div>
+    <label class="field">Campo para agrupar la tabla de biomas<select id="eco-group" disabled></select></label>
+    <div class="preview" id="eco-group-preview"></div>
+    <label class="field">Nombre del ecosistema
+      <input type="text" id="eco-template" spellcheck="false">
+    </label>
+    <p class="hint">Use <code>{cobertura}</code>, <code>{bioma}</code> (valor del campo llave) y <code>{grupo}</code> (etiqueta del bioma). Ejemplo: <span id="eco-template-example" class="example"></span></p>
+  </section>
+
+  <section class="step" id="step-fc">
+    <h2><span class="n">4</span>Factores de compensación</h2>
+    <p class="included" id="fc-included" hidden></p>
+    <label class="btn">Elegir otro Excel (BUB y FC)<input type="file" id="fc-file" accept=".xlsx,.xlsm,.xls" hidden></label>
+    <p id="fc-status" class="hint">Sin archivo.</p>
+    <p class="hint">FC = Crp + Cra + Crm + Ctt (representatividad en el SINAP, rareza, remanencia y tasa de transformación). Si el Excel trae los cuatro criterios, se pueden editar uno por uno en la pestaña Factores.</p>
+  </section>
+
+  <section class="step" id="step-params">
+    <h2><span class="n">5</span>Parámetros</h2>
+    <fieldset class="method">
+      <legend>Cálculo de área</legend>
+      <label class="radio"><input type="radio" name="method" value="planar" checked>
+        <span><b>Planimétrica</b> en el CRS de análisis. Equivale en QGIS a <code>area($geometry)</code> con la capa en ese CRS.</span></label>
+      <label class="radio"><input type="radio" name="method" value="geod">
+        <span><b>Elipsoidal</b> sobre el elipsoide elegido. Equivale a <code>$area</code> con el elipsoide del proyecto configurado.</span></label>
+    </fieldset>
+    <div class="grid2">
+      <label class="field">CRS de análisis<select id="crs"></select></label>
+      <label class="field">Elipsoide<select id="ellipsoid"></select></label>
+    </div>
+    <fieldset class="residues">
+      <legend>Residuos geométricos del cruce</legend>
+      <div class="grid2">
+        <label class="field">Umbral (m²)<input type="text" id="res-threshold" inputmode="decimal" value="0,01"></label>
+        <label class="field">Tratamiento<select id="res-action">
+          <option value="reasignar">Sumar al vecino</option>
+          <option value="descartar">Descartar</option>
+          <option value="conservar">Conservar</option>
+        </select></label>
+      </div>
+      <p class="hint">Polígonos ecosistema–cobertura menores al umbral. «Sumar al vecino» los une a la unidad con la que comparten más borde (prefiere el mismo bioma), así no se pierde área.</p>
+    </fieldset>
+    <div class="grid2">
+      <label class="field">Decimales en ha<input type="number" id="dec-ha" min="0" max="8" value="4"></label>
+      <label class="field">Decimales en m²<input type="number" id="dec-m2" min="0" max="6" value="2"></label>
+    </div>
+    <label class="radio"><input type="checkbox" id="unify" checked>
+      <span>Unificar nombres que solo difieren en mayúsculas, tildes o puntuación (p. ej. «Zonas Pantanosas» y «Zonas pantanosas»). Se usa la escritura más frecuente y se informa en Diagnóstico.</span></label>
+    <label class="field">Codificación de DBF<select id="encoding">
+      <option value="auto">Automática (.cpg o detección)</option>
+      <option value="utf-8">UTF-8</option>
+      <option value="windows-1252">Latin-1 / Windows-1252</option>
+    </select></label>
+  </section>
+
+  <section class="step" id="step-run">
+    <h2><span class="n">6</span>Ejecutar y exportar</h2>
+    <button type="button" class="primary" id="run">Ejecutar cruce y construir tablas</button>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+    <div class="exports">
+      <button type="button" id="dl-xlsx" disabled>Descargar libro Excel</button>
+      <button type="button" id="dl-footprint" disabled>Descargar huella (GeoJSON)</button>
+      <button type="button" id="dl-units" disabled>Descargar unidades (GeoJSON)</button>
+      <button type="button" id="dl-edits" disabled>Guardar ajustes</button>
+      <label class="btn">Cargar ajustes<input type="file" id="ul-edits" accept=".json" hidden></label>
+    </div>
+  </section>
+</aside>
+
+<main class="results">
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="map" aria-selected="true">Mapa</button>
+    <button role="tab" data-tab="biomes">Biomas</button>
+    <button role="tab" data-tab="ecosystems">Ecosistemas</button>
+    <button role="tab" data-tab="coverages">Coberturas</button>
+    <button role="tab" data-tab="factors">Factores</button>
+    <button role="tab" data-tab="residues">Residuos <span id="res-badge" class="badge" hidden></span></button>
+    <button role="tab" data-tab="diag">Diagnóstico</button>
+  </nav>
+  <div class="legend-edit" id="legend-edit" hidden>
+    <span class="swatch edit"></span>Editable <span class="swatch changed"></span>Modificado por usted
+    <span class="spacer"></span><span id="method-label"></span>
+  </div>
+  <section class="tab" id="tab-map">
+    <div class="map-tools">
+      <label>Mapa base <select id="basemap">
+        <option value="none">Sin mapa base</option>
+        <option value="osm" selected>Calles — OpenStreetMap</option>
+        <option value="esri">Satélite — Esri World Imagery</option>
+      </select></label>
+      <label class="check"><input type="checkbox" id="lyr-footprint" checked> Huella</label>
+      <label class="check"><input type="checkbox" id="lyr-biomes" checked> Biomas</label>
+      <label class="check"><input type="checkbox" id="lyr-units" checked> Ecosistemas–coberturas</label>
+      <label class="check"><input type="checkbox" id="lyr-residues" checked> Residuos</label>
+    </div>
+    <div id="map"></div>
+  </section>
+  <section class="tab" id="tab-biomes" hidden></section>
+  <section class="tab" id="tab-ecosystems" hidden></section>
+  <section class="tab" id="tab-coverages" hidden></section>
+  <section class="tab" id="tab-factors" hidden></section>
+  <section class="tab" id="tab-residues" hidden></section>
+  <section class="tab" id="tab-diag" hidden></section>
+</main>
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

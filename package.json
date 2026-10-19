@@ -1,0 +1,24 @@
+{
+  "name": "analizador-compensaciones-web",
+  "version": "0.2.0",
+  "description": "Analizador de Compensaciones — Fundación Cunaguaro (versión web para GitHub Pages)",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node tests/prueba_motor.mjs",
+    "serve": "python3 -m http.server 8000 --directory docs"
+  },
+  "dependencies": {
+    "fflate": "0.8.2",
+    "geographiclib-geodesic": "2.2.0",
+    "geos-wasm": "3.1.1",
+    "leaflet": "1.9.4",
+    "proj4": "2.19.10",
+    "sql.js": "1.13.0",
+    "xlsx": "0.18.5"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.5"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "_nota": "Capas que la aplicación carga sola al abrirse. Para quitarlas, borre este archivo y los .zip de esta carpeta.",
+  "coberturas": {
+    "archivo": "coberturas_referencia.zip",
+    "nombre": "Cobertura de la tierra EIA–PMA (Cobertura_Tierra_EIA_PMA)",
+    "campo": "OBSERV"
+  },
+  "ecosistemas": {
+    "archivo": "ecosistemas_referencia.zip",
+    "nombre": "Ecosistemas (ecosistemas_ai_4221)",
+    "llave": "bioma_IAvH",
+    "grupo": "bioma_IAvH"
+  },
+  "factores": {
+    "archivo": "factores_compensacion.xlsx",
+    "nombre": "Factores de compensación por BUB (FC = Crp + Cra + Crm + Ctt, Resolución 256 de 2018)"
+  }
+}

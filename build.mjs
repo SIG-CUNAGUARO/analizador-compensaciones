@@ -1,0 +1,13 @@
+import * as esbuild from 'esbuild';
+import fs from 'fs';
+const out = 'docs';
+fs.rmSync(out, { recursive: true, force: true });
+fs.mkdirSync(out, { recursive: true });
+const common = { bundle: true, format: 'esm', minify: true, sourcemap: false, target: ['es2022'], platform: 'browser', external: ['fs', 'path', 'crypto', 'module', 'url', 'worker_threads'], logLevel: 'warning', legalComments: 'none' };
+await esbuild.build({ ...common, entryPoints: ['src/app.js'], outfile: `${out}/app.js` });
+await esbuild.build({ ...common, entryPoints: ['src/worker.js'], outfile: `${out}/worker.js` });
+fs.cpSync('public', out, { recursive: true });
+fs.copyFileSync('node_modules/sql.js/dist/sql-wasm.wasm', `${out}/sql-wasm.wasm`);
+fs.copyFileSync('node_modules/leaflet/dist/leaflet.css', `${out}/leaflet.css`);
+fs.writeFileSync(`${out}/.nojekyll`, '');
+for (const f of fs.readdirSync(out)) console.log(f.padEnd(18), (fs.statSync(`${out}/${f}`).size / 1024).toFixed(0).padStart(6), 'KB');
