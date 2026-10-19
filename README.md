@@ -6,47 +6,8 @@ Todo el cálculo ocurre en el navegador del usuario: las capas y el Excel **no s
 La geometría usa **GEOS** compilado a WebAssembly (el mismo motor de Shapely, QGIS y PostGIS),
 de modo que los cruces se comportan igual que en la versión de escritorio.
 
-## Publicar en GitHub Pages
+web: https://sig-cunaguaro.github.io/analizador-compensaciones/
 
-**Opción A — sin compilar (recomendada para empezar).** La carpeta `docs/` ya trae la aplicación compilada.
-
-1. Cree un repositorio y suba todo el contenido de esta carpeta.
-2. En GitHub: *Settings → Pages → Build and deployment → Source: Deploy from a branch*.
-3. Rama `main`, carpeta `/docs`. Guardar.
-4. En uno o dos minutos queda en `https://<usuario>.github.io/<repositorio>/`.
-
-**Opción B — compilación automática.** Si va a modificar el código en `src/`, use el flujo incluido
-en `.github/workflows/pages.yml`: en *Settings → Pages* elija *Source: GitHub Actions*. Cada push a `main`
-compila y publica.
-
-## Desarrollo local
-
-```bash
-npm install
-npm run build      # genera docs/
-npm run serve      # http://localhost:8000
-npm test           # prueba del motor con datos_prueba/
-```
-
-La aplicación necesita servirse por HTTP (no funciona abriendo `index.html` con doble clic),
-porque usa un Web Worker y WebAssembly.
-
-## Capas incluidas
-
-La aplicación carga sola, al abrirse, dos capas de referencia ubicadas en `public/data/` (copiadas a `docs/data/` al compilar):
-
-| Capa | Archivo | Configuración por defecto |
-|---|---|---|
-| Coberturas | `coberturas_referencia.zip` (Cobertura_Tierra_EIA_PMA, 735 polígonos, EPSG:9377) | campo `OBSERV` |
-| Ecosistemas | `ecosistemas_referencia.zip` (ecosistemas_ai_4221, 2191 polígonos, EPSG:9377) | campo de bioma `bioma_IAvH` |
-
-| Factores | `factores_compensacion.xlsx` (399 BUB con Crp, Cra, Crm, Ctt y FC) | FC = Crp + Cra + Crm + Ctt |
-
-El usuario solo carga las intervenciones. Puede elegir otra capa y luego
-«Volver a la capa incluida». Para cambiar las capas incluidas, reemplace los .zip y edite `public/data/capas.json`;
-para quitarlas, borre esa carpeta.
-
-**Importante:** un sitio de GitHub Pages es público. Cualquiera con el enlace puede descargar estas capas.
 
 ## Formatos de entrada
 
