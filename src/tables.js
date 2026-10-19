@@ -30,6 +30,7 @@ export function buildTables(res, cfg) {
   const excel = new Map((cfg.factors || []).map((f) => [normalizeText(f.bub), f]));
   const fcOverride = cfg.fcOverride || {};
   const fcCob = cfg.fcCob || {};
+  const fcCobOnly = cfg.fcCobOnly || {};
   const rowFcCob = cfg.rowFcCob || {};
   const bioLabel = cfg.bioLabel || {};
   const ecoLabel = cfg.ecoLabel || {};
@@ -130,11 +131,14 @@ export function buildTables(res, cfg) {
     const rowOver = num(rowFcCob[r.rowKey]);
     const fcCobValue = rowOver ?? num(fcCob[r.cov]) ?? 1;
     const ha = r.m2 / 1e4;
-    return { ...r, ha, fc, fcCob: fcCobValue, fcCobOverridden: rowOver !== null, comp: fc === null ? null : ha * fc * fcCobValue };
+    const only = !!fcCobOnly[r.cov];
+    // «Solo FCcob»: prioridad del FCcob sobre el FC del bioma → ha × FCcob.
+    const comp = only ? ha * fcCobValue : fc === null ? null : ha * fc * fcCobValue;
+    return { ...r, ha, fc, fcCob: fcCobValue, fcCobOverridden: rowOver !== null, fcCobOnly: only, comp };
   }).sort((a, b) => normalizeText([a.label, a.name, a.cov].join(SEP)).localeCompare(normalizeText([b.label, b.name, b.cov].join(SEP))));
 
   const coverageList = [...new Set(effective.map((p) => p.cov))].sort((a, b) => normalizeText(a).localeCompare(normalizeText(b)));
-  const coverageFactors = coverageList.map((cov) => ({ cov, fcCob: num(fcCob[cov]) ?? 1 }));
+  const coverageFactors = coverageList.map((cov) => ({ cov, fcCob: num(fcCob[cov]) ?? 1, only: !!fcCobOnly[cov] }));
 
   // -------------------------------------------------------------- residuos
   const residues = (res.residues?.items || []).map((r) => {

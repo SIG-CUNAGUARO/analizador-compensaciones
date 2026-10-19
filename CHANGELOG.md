@@ -12,6 +12,8 @@ Primera versión web, publicable en GitHub Pages. Reproduce el flujo de la v0.1.
 - Excel con fórmulas vivas vinculadas a las hojas de factores.
 - Exportación de la huella y de las unidades ecosistema–cobertura en GeoJSON.
 - Capas de coberturas (Cobertura_Tierra_EIA_PMA, campo OBSERV) y ecosistemas (ecosistemas_ai_4221, bioma_IAvH) incluidas y precargadas.
+- Opción «Solo FCcob» por cobertura: área a compensar = ha × FCcob, ignorando el FC del bioma (también en el Excel, con fórmula).
+- Un solo campo de bioma: sirve de llave para el FC y de agrupación de la tabla de biomas.
 - Tabla de factores incluida y lectura de los criterios Crp, Cra, Crm y Ctt (FC = suma, Resolución 256 de 2018): validación de la suma, edición por criterio y FC como fórmula en el Excel exportado.
 - Unificación de variantes de escritura en los nombres (mayúsculas, tildes, puntuación), con registro en Diagnóstico.
 - Aviso de traslapes entre polígonos de distinta clase dentro de la huella.

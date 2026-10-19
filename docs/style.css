@@ -121,8 +121,12 @@ td input.cell.changed { background: var(--straw); color: #2b2408; font-weight: 6
 .cellwrap { display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
 td.text .cellwrap { justify-content: flex-start; }
 .empty-state { color: var(--muted); padding: 40px 10px; text-align: center; }
-.cob-panel { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 6px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); padding: 10px 12px; margin-bottom: 10px; }
-.cob-panel label { display: flex; justify-content: space-between; gap: 8px; align-items: center; font-size: 0.86rem; }
+.cob-panel { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 6px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); padding: 10px 12px; margin-bottom: 10px; }
+.cob-item { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; font-size: 0.86rem; padding: 3px 4px; border-radius: var(--radius-s); }
+.cob-item.only { background: var(--straw-soft); }
+.cob-item .check { font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+.cob-item.only .check { color: var(--ink); font-weight: 600; }
+.cob-hint { margin: -2px 0 8px; max-width: 110ch; }
 .cob-panel input.cell { width: 10ch; text-align: right; border: 0; border-bottom: 2px solid var(--straw); background: var(--straw-soft); padding: 3px 5px; }
 .cob-panel input.cell.changed { background: var(--straw); color: #2b2408; font-weight: 600; }
 .diag { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); padding: 14px 18px; max-width: 900px; }

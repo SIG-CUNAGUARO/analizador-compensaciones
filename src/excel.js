@@ -119,7 +119,7 @@ export function buildWorkbook(model) {
   // Biomas
   XLSX.utils.book_append_sheet(wb, sheetFrom([
     { id: 'label', header: 'Bioma', value: (r) => r.label },
-    { id: 'keys', header: 'Llave FC (bioma_IAvH)', value: (r) => r.keys.join('; ') },
+    { id: 'keys', header: 'bioma_IAvH', value: (r) => r.keys.join('; ') },
     { id: 'm2', header: 'Áreas afectadas (m²)', value: (r) => r.m2, z: FMT.m2 },
     { id: 'ha', header: 'Áreas afectadas (ha)', value: (r) => r.ha, z: FMT.ha, formula: haF },
     { id: 'fc', header: 'FC', value: (r) => r.fc, z: FMT.fc, formula: (L, r, row) => (row.fcKey ? `IFERROR(VLOOKUP(${L.keys}${r},Factores_BUB_FC!$A$2:$G$${nFc + 1},7,FALSE),"")` : null) },
@@ -151,7 +151,8 @@ export function buildWorkbook(model) {
     // Si la fila tiene un FCcob personalizado se escribe el valor; si no, se consulta la hoja.
     { id: 'fcCob', header: 'FCcob', value: (r) => r.fcCob, z: FMT.fc, formula: (L, r, row) => (row.fcCobOverridden ? null : cobLookup(L, r)) },
     { id: 'custom', header: 'FCcob personalizado en la fila', value: (r) => (r.fcCobOverridden ? 'Sí' : '') },
-    { id: 'comp', header: 'Áreas a compensar (ha)', value: (r) => r.comp, z: FMT.ha, formula: (L, r) => `IF(${L.fc}${r}="","",${L.ha}${r}*${L.fc}${r}*${L.fcCob}${r})` },
+    { id: 'only', header: 'Solo FCcob (ha × FCcob)', value: (r) => (r.fcCobOnly ? 'Sí' : 'No'), formula: (L, r) => `IFERROR(VLOOKUP(${L.cov}${r},Factores_cobertura!$A$2:$C$${nCob + 1},3,FALSE),"No")` },
+    { id: 'comp', header: 'Áreas a compensar (ha)', value: (r) => r.comp, z: FMT.ha, formula: (L, r) => `IF(${L.only}${r}="Sí",${L.ha}${r}*${L.fcCob}${r},IF(${L.fc}${r}="","",${L.ha}${r}*${L.fc}${r}*${L.fcCob}${r}))` },
   ], t.coverages, { totals: ['m2', 'ha', 'comp'] }), 'Coberturas');
 
   // Factores usados (editables en el libro): FC = Crp + Cra + Crm + Ctt
@@ -168,6 +169,7 @@ export function buildWorkbook(model) {
   XLSX.utils.book_append_sheet(wb, sheetFrom([
     { id: 'cov', header: 'Cobertura', value: (r) => r.cov },
     { id: 'fcCob', header: 'FCcob (edite aquí)', value: (r) => r.fcCob, z: FMT.fc },
+    { id: 'only', header: 'Solo FCcob: Sí = ha × FCcob, ignora el FC (edite aquí)', value: (r) => (r.only ? 'Sí' : 'No') },
   ], t.coverageFactors), 'Factores_cobertura');
 
   XLSX.utils.book_append_sheet(wb, sheetFrom([

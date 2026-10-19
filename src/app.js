@@ -33,7 +33,7 @@ const S = {
   cov: [], eco: [],
   factors: null, factorsName: '',
   result: null, tables: null, lastParams: null,
-  edits: { fcOverride: {}, critOverride: {}, fcCob: {}, rowFcCob: {}, bioLabel: {}, ecoLabel: {} },
+  edits: { fcOverride: {}, critOverride: {}, fcCob: {}, fcCobOnly: {}, rowFcCob: {}, bioLabel: {}, ecoLabel: {} },
 };
 
 // --------------------------------------------------------------- utilidades
@@ -217,14 +217,12 @@ function onEcoLayer() {
   const l = ecoLayer();
   const inc = l && l.id === S.included?.eco?.layerId ? S.included.eco : null;
   fillFieldSelect($('eco-key'), l, [...(inc ? [inc.llave] : []), 'bioma_IAvH', 'bioma_iavh', 'BUB']);
-  fillFieldSelect($('eco-group'), l, [...(inc ? [inc.grupo] : []), 'bioma_IAvH', 'gran_bioma', 'bioma_prel']);
   if (l?.crsError) setStatus(`Ecosistemas: ${l.crsError}`, true);
   refreshEcoPreviews();
 }
 async function refreshEcoPreviews() {
   const l = ecoLayer();
   const keyVals = await showPreview($('eco-key-preview'), l?.id, $('eco-key').value);
-  await showPreview($('eco-group-preview'), l?.id, $('eco-group').value);
   S.sampleKey = keyVals[0]?.value || 'Peinobioma de la Orinoquía';
   updateTemplateExample();
 }
@@ -237,7 +235,6 @@ $('eco-files').onchange = (e) => loadEcosystems(e.target.files);
 $('eco-dir').onchange = (e) => loadEcosystems(e.target.files);
 $('eco-layer').onchange = onEcoLayer;
 $('eco-key').onchange = refreshEcoPreviews;
-$('eco-group').onchange = refreshEcoPreviews;
 $('eco-template').value = DEFAULT_TEMPLATE;
 $('eco-template').oninput = () => { updateTemplateExample(); rebuild(); };
 
@@ -307,10 +304,10 @@ function buildParams() {
   if (!cov) throw new Error('Cargue y seleccione la capa de coberturas.');
   if (!$('cov-field').value) throw new Error('Seleccione el campo con el nombre de la cobertura.');
   if (!eco) throw new Error('Cargue y seleccione la capa de ecosistemas.');
-  if (!$('eco-key').value || !$('eco-group').value) throw new Error('Seleccione el campo llave y el campo de agrupación de biomas.');
+  if (!$('eco-key').value) throw new Error('Seleccione el campo de bioma.');
   return {
     interventions,
-    eco: { id: eco.id, keyField: $('eco-key').value, groupField: $('eco-group').value },
+    eco: { id: eco.id, keyField: $('eco-key').value, groupField: $('eco-key').value },
     cov: { id: cov.id, field: $('cov-field').value },
     crs: $('crs').value,
     ellipsoid: $('ellipsoid').value,
@@ -410,7 +407,6 @@ function renderBiomes() {
         value: (r) => r.label, changed: (r) => S.edits.bioLabel[r.group] !== undefined,
         commit: (r, raw) => setEdit('bioLabel', r.group, raw.trim() && raw.trim() !== r.group ? raw.trim() : null),
         reset: (r) => setEdit('bioLabel', r.group, null) } },
-      { header: `Valor de ${S.lastParams.eco.keyField}`, cls: 'text', get: (r) => r.keys.join('; ') },
       numCol('Áreas afectadas (m²)', 'm2', () => d.m2, { total: true }),
       numCol('Áreas afectadas (ha)', 'ha', () => d.ha, { total: true }),
       { header: 'FC', cls: 'num', get: (r) => r.fc, raw: (r) => r.fc, fmt: fcFmt, missing: (r) => r.fc === null, edit: { ...fcEdit((r) => r.fcKey), when: (r) => !!r.fcKey } },
@@ -444,7 +440,7 @@ function renderCoverages() {
   const t = S.tables; const d = dec();
   const box = $('tab-coverages');
   renderTable(box, {
-    title: 'Tabla por coberturas', formula: 'Área a compensar (ha) = Área afectada (ha) × FC × FCcob',
+    title: 'Tabla por coberturas', formula: 'Área a compensar (ha) = ha × FC × FCcob · en coberturas con «Solo FCcob»: ha × FCcob',
     rows: t.coverages, totals: t.totals.coverages, exportName: 'tabla_coberturas',
     columns: [
       { header: 'Bioma', cls: 'text', get: (r) => r.label },
@@ -452,7 +448,8 @@ function renderCoverages() {
       { header: 'Cobertura', cls: 'text', get: (r) => r.cov },
       numCol('Áreas afectadas (m²)', 'm2', () => d.m2, { total: true }),
       numCol('Áreas afectadas (ha)', 'ha', () => d.ha, { total: true }),
-      { header: 'FC', cls: 'num', get: (r) => r.fc, raw: (r) => r.fc, fmt: fcFmt, missing: (r) => r.fc === null },
+      { header: 'FC', cls: 'num', get: (r) => r.fc, raw: (r) => r.fc, fmt: (v, r) => (r.fcCobOnly ? `${fcFmt(v)} (no aplica)` : fcFmt(v)), missing: (r) => r.fc === null && !r.fcCobOnly },
+      { header: 'Solo FCcob', cls: 'text', get: (r) => (r.fcCobOnly ? 'Sí' : ''), raw: (r) => (r.fcCobOnly ? 'Sí' : '') },
       { header: 'FCcob', cls: 'num', get: (r) => r.fcCob, raw: (r) => r.fcCob, edit: {
         value: (r) => fcFmt(r.fcCob), changed: (r) => r.fcCobOverridden,
         commit: (r, raw) => { const n = parseNum(raw); setEdit('rowFcCob', r.rowKey, n); },
@@ -462,15 +459,24 @@ function renderCoverages() {
   });
   if (!t.coverages.length) return;
   const panel = document.createElement('div');
-  panel.innerHTML = `<div class="table-head"><h3>FCcob por cobertura</h3><span class="formula">Se aplica a todas las filas de esa cobertura, salvo las que tengan un valor propio en la tabla.</span><span class="spacer"></span><button type="button" id="cob-all-one">Asignar 1 a todas</button></div>
-    <div class="cob-panel">${t.coverageFactors.map((c, i) => `<label><span>${esc(c.cov)}</span><input class="cell${S.edits.fcCob[c.cov] !== undefined ? ' changed' : ''}" data-i="${i}" value="${esc(fcFmt(c.fcCob))}" inputmode="decimal"></label>`).join('')}</div>`;
+  panel.innerHTML = `<div class="table-head"><h3>FCcob por cobertura</h3><span class="spacer"></span><button type="button" id="cob-all-one">Asignar 1 a todas</button><button type="button" id="cob-only-none">Quitar «Solo FCcob»</button></div>
+    <p class="hint cob-hint">El FCcob se aplica a todas las filas de esa cobertura, salvo las que tengan un valor propio en la tabla.
+    Al marcar <b>Solo FCcob</b>, se da prioridad al FCcob sobre el FC del bioma: el área a compensar es <b>ha × FCcob</b> y el FC se ignora.
+    Es útil para coberturas transformadas como palma, pastos y cereales (FCcob = 1, se compensa 1:1) o tierras desnudas e hidrocarburos (FCcob = 0, no se compensa).</p>
+    <div class="cob-panel">${t.coverageFactors.map((c, i) => `<div class="cob-item${c.only ? ' only' : ''}"><span class="cob-name">${esc(c.cov)}</span>
+      <label class="check" title="Prioridad del FCcob sobre el FC: área a compensar = ha × FCcob"><input type="checkbox" class="cob-only" data-i="${i}" ${c.only ? 'checked' : ''}> Solo FCcob</label>
+      <input class="cell${S.edits.fcCob[c.cov] !== undefined ? ' changed' : ''}" data-i="${i}" value="${esc(fcFmt(c.fcCob))}" inputmode="decimal" aria-label="FCcob de ${esc(c.cov)}"></div>`).join('')}</div>`;
   box.prepend(panel);
   panel.querySelectorAll('input.cell').forEach((inp) => inp.addEventListener('change', () => {
     const cov = t.coverageFactors[+inp.dataset.i].cov;
     const n = parseNum(inp.value);
     setEdit('fcCob', cov, n === 1 ? null : n);
   }));
+  panel.querySelectorAll('input.cob-only').forEach((cb) => cb.addEventListener('change', () => {
+    setEdit('fcCobOnly', t.coverageFactors[+cb.dataset.i].cov, cb.checked ? true : null);
+  }));
   panel.querySelector('#cob-all-one').onclick = () => { S.edits.fcCob = {}; rebuild(); };
+  panel.querySelector('#cob-only-none').onclick = () => { S.edits.fcCobOnly = {}; rebuild(); };
 }
 
 function renderFactors() {
@@ -547,7 +553,7 @@ function renderDiag() {
   const lines = [
     ['Capas de intervención', S.lastLayers.interv.map(layerLabel).join('; ')],
     ['Capa de coberturas', `${layerLabel(S.lastLayers.cov)} · campo ${p.cov.field}`],
-    ['Capa de ecosistemas', `${layerLabel(S.lastLayers.eco)} · llave ${p.eco.keyField} · agrupación ${p.eco.groupField}`],
+    ['Capa de ecosistemas', `${layerLabel(S.lastLayers.eco)} · campo de bioma ${p.eco.keyField}`],
     ['CRS de análisis', `${CRS_DEFS[p.crs].label} (${p.crs})`],
     ['Huella — área planimétrica', `${fmt(r.footprint.planar, 2)} m² · ${fmt(r.footprint.planar / 1e4, 6)} ha`],
     ['Huella — área elipsoidal', `${fmt(r.footprint.geod, 2)} m² · ${fmt(r.footprint.geod / 1e4, 6)} ha (${ELLIPSOIDS[p.ellipsoid].label})`],
@@ -666,8 +672,7 @@ $('dl-xlsx').onclick = () => {
     'Capa de cobertura': layerLabel(S.lastLayers.cov),
     'Campo de cobertura': p.cov.field,
     'Capa de ecosistemas': layerLabel(S.lastLayers.eco),
-    'Campo llave BUB/FC': p.eco.keyField,
-    'Campo de agrupación de bioma': p.eco.groupField,
+    'Campo de bioma (llave BUB/FC y agrupación)': p.eco.keyField,
     'Construcción del ecosistema': $('eco-template').value || DEFAULT_TEMPLATE,
     'Unificación de variantes de escritura': p.unifySpelling ? 'Sí' : 'No',
     'Archivo de factores': S.factorsName || 'Sin archivo (FC escritos en la app)',
@@ -686,6 +691,7 @@ $('dl-xlsx').onclick = () => {
     'BUB con criterios editados en la app': Object.keys(S.edits.critOverride).length,
     'FCcob por cobertura distintos de 1': Object.keys(S.edits.fcCob).length,
     'FCcob personalizados por fila': Object.keys(S.edits.rowFcCob).length,
+    'Coberturas con «Solo FCcob» (ha × FCcob)': Object.keys(S.edits.fcCobOnly).join('; ') || 'Ninguna',
   };
   const warnings = [...r.warnings, ...(S.tables.missingKeys.length ? [`Hay ${S.tables.missingKeys.length} valores de ${p.eco.keyField} sin FC asociado.`] : [])];
   download(buildWorkbook({ tables: S.tables, params, warnings }), `resultados_compensacion_${stamp()}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -723,7 +729,7 @@ $('ul-edits').onchange = async (e) => {
   if (!f) return;
   try {
     const data = JSON.parse(await f.text());
-    S.edits = { fcOverride: {}, critOverride: {}, fcCob: {}, rowFcCob: {}, bioLabel: {}, ecoLabel: {}, ...(data.edits || {}) };
+    S.edits = { fcOverride: {}, critOverride: {}, fcCob: {}, fcCobOnly: {}, rowFcCob: {}, bioLabel: {}, ecoLabel: {}, ...(data.edits || {}) };
     if (data.template) $('eco-template').value = data.template;
     if (data.method) document.querySelector(`input[name=method][value=${data.method}]`).checked = true;
     if (data.residue) { $('res-threshold').value = String(data.residue.threshold).replace('.', ','); $('res-action').value = data.residue.action; }

@@ -58,14 +58,12 @@
     </div>
     <p class="included" id="eco-included" hidden></p>
     <label class="field">Capa<select id="eco-layer" disabled></select></label>
-    <label class="field">Campo llave para el FC (cruce con BUB)<select id="eco-key" disabled></select></label>
+    <label class="field">Campo de bioma (llave para el FC y agrupación de la tabla de biomas)<select id="eco-key" disabled></select></label>
     <div class="preview" id="eco-key-preview"></div>
-    <label class="field">Campo para agrupar la tabla de biomas<select id="eco-group" disabled></select></label>
-    <div class="preview" id="eco-group-preview"></div>
     <label class="field">Nombre del ecosistema
       <input type="text" id="eco-template" spellcheck="false">
     </label>
-    <p class="hint">Use <code>{cobertura}</code>, <code>{bioma}</code> (valor del campo llave) y <code>{grupo}</code> (etiqueta del bioma). Ejemplo: <span id="eco-template-example" class="example"></span></p>
+    <p class="hint">Use <code>{cobertura}</code>, <code>{bioma}</code> (valor del campo de bioma) y <code>{grupo}</code> (nombre visible del bioma, si lo editó). Ejemplo: <span id="eco-template-example" class="example"></span></p>
   </section>
 
   <section class="step" id="step-fc">

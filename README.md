@@ -6,8 +6,30 @@ Todo el cálculo ocurre en el navegador del usuario: las capas y el Excel **no s
 La geometría usa **GEOS** compilado a WebAssembly (el mismo motor de Shapely, QGIS y PostGIS),
 de modo que los cruces se comportan igual que en la versión de escritorio.
 
-web: https://sig-cunaguaro.github.io/analizador-compensaciones/
+## Publicar en GitHub Pages
 
+**Opción A — sin compilar (recomendada para empezar).** La carpeta `docs/` ya trae la aplicación compilada.
+
+1. Cree un repositorio y suba todo el contenido de esta carpeta.
+2. En GitHub: *Settings → Pages → Build and deployment → Source: Deploy from a branch*.
+3. Rama `main`, carpeta `/docs`. Guardar.
+4. En uno o dos minutos queda en `https://<usuario>.github.io/<repositorio>/`.
+
+**Opción B — compilación automática.** Si va a modificar el código en `src/`, use el flujo incluido
+en `.github/workflows/pages.yml`: en *Settings → Pages* elija *Source: GitHub Actions*. Cada push a `main`
+compila y publica.
+
+## Desarrollo local
+
+```bash
+npm install
+npm run build      # genera docs/
+npm run serve      # http://localhost:8000
+npm test           # prueba del motor con datos_prueba/
+```
+
+La aplicación necesita servirse por HTTP (no funciona abriendo `index.html` con doble clic),
+porque usa un Web Worker y WebAssembly.
 
 ## Capas incluidas
 
@@ -16,7 +38,7 @@ La aplicación carga sola, al abrirse, dos capas de referencia ubicadas en `publ
 | Capa | Archivo | Configuración por defecto |
 |---|---|---|
 | Coberturas | `coberturas_referencia.zip` (Cobertura_Tierra_EIA_PMA, 735 polígonos, EPSG:9377) | campo `OBSERV` |
-| Ecosistemas | `ecosistemas_referencia.zip` (ecosistemas_ai_4221, 2191 polígonos, EPSG:9377) | llave y grupo `bioma_IAvH` |
+| Ecosistemas | `ecosistemas_referencia.zip` (ecosistemas_ai_4221, 2191 polígonos, EPSG:9377) | campo de bioma `bioma_IAvH` |
 
 | Factores | `factores_compensacion.xlsx` (399 BUB con Crp, Cra, Crm, Ctt y FC) | FC = Crp + Cra + Crm + Ctt |
 
@@ -111,6 +133,10 @@ Las celdas con fondo pajizo son editables; las que usted modificó se resaltan y
 
 - **FC** por valor de la llave (`bioma_IAvH`), en las pestañas Factores, Biomas o Ecosistemas.
 - **FCcob** por cobertura (panel superior de Coberturas) o **por fila** (en la tabla).
+- **Solo FCcob** (casilla por cobertura): da prioridad al FCcob sobre el FC del bioma, y el área a compensar
+  pasa a ser **ha × FCcob**. Sirve para coberturas transformadas: palma, pastos y cereales (FCcob = 1, se
+  compensa 1:1) o tierras desnudas e hidrocarburos (FCcob = 0, no se compensa). En el Excel, la columna
+  «Solo FCcob» de `Factores_cobertura` se puede cambiar entre «Sí» y «No» y el libro se recalcula.
 - **Nombre visible** de cada bioma y de cada ecosistema, para acortar o corregir etiquetas.
 - **Plantilla del nombre del ecosistema**: `{cobertura} del {bioma}` por defecto; admite `{grupo}`.
 
